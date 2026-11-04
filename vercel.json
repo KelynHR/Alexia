@@ -1,0 +1,19 @@
+{
+  "functions": {
+    "api/index.mjs": {
+      "includeFiles": [
+        "*.html",
+        "*.css",
+        "*.js",
+        "booking-config.json",
+        "assets/**"
+      ]
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
+}
