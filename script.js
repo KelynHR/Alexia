@@ -1,0 +1,34 @@
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const config=window.LAGO_CONFIG||{};
+$('#year').textContent=new Date().getFullYear();
+const menu=$('.menu-toggle');
+menu.addEventListener('click',()=>{const open=menu.getAttribute('aria-expanded')!=='true';menu.setAttribute('aria-expanded',String(open));$('#navigation').classList.toggle('open',open);menu.textContent=open?'×':'☰'});
+$$('#navigation a').forEach(a=>a.addEventListener('click',()=>{menu.setAttribute('aria-expanded','false');$('#navigation').classList.remove('open');menu.textContent='☰'}));
+$$('[data-interest]').forEach(a=>a.addEventListener('click',()=>{$('#interest').value=a.dataset.interest}));
+// Confirmación personalizada: se abre solo después de guardar en el servidor.
+const leadConfirmation=document.createElement('dialog');
+leadConfirmation.id='lead-confirmation';
+leadConfirmation.className='lead-confirmation';
+leadConfirmation.setAttribute('aria-labelledby','lead-confirmation-title');
+leadConfirmation.setAttribute('aria-describedby','lead-confirmation-description');
+leadConfirmation.innerHTML='<button type="button" class="dialog-close" aria-label="Cerrar confirmación">×</button><div class="confirmation-seal" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="m8 16 5 5 11-11"/></svg></div><p class="eyebrow">EL PRIMER PASO HACIA TU NUEVO HOGAR</p><h2 id="lead-confirmation-title">Gracias,<span id="lead-confirmation-name"></span></h2><p class="confirmation-registered">Tu solicitud ya está registrada.</p><p id="lead-confirmation-description">Tus datos se guardaron correctamente. Gracias por dar el primer paso para conocer Lago Sur.</p><button type="button" class="btn dark confirmation-done">Seguir explorando <span aria-hidden="true">↗</span></button><span class="confirmation-signature">LAGO SUR · CAÑADAS DEL LAGO</span>';
+document.body.append(leadConfirmation);
+leadConfirmation.querySelector('.confirmation-done').addEventListener('click',()=>leadConfirmation.close());
+function confirmLead(name){
+ $('#lead-confirmation-name').textContent=String(name||'').trim()+'.';
+ show(leadConfirmation);
+}
+const dialogs=$$('dialog');
+dialogs.forEach(d=>{d.querySelector('.dialog-close').addEventListener('click',()=>d.close());d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close()}});d.addEventListener('close',()=>{document.body.classList.remove('modal-open')})});
+function show(d){d.showModal();document.body.classList.add('modal-open')}
+$$('.gallery-open').forEach(b=>b.addEventListener('click',()=>{$('#gallery-image').src=b.dataset.image;$('#gallery-image').alt=b.dataset.caption;$('#gallery-caption').textContent=b.dataset.caption;show($('#gallery-dialog'))}));
+const floors={ground:{caption:'Plano de planta baja',items:['Estacionamiento para 2 autos','Cocina equipada','Sala y comedor','Cuarto de lavado con tendedero','Baño de visitas','Bodega exterior y área de asador']},upper:{caption:'Plano de planta alta',items:['3 recámaras con baño completo','Recámara principal con vestidor','Balcón en recámara principal','Family room']}};
+function floor(name){$('#plan-image').src='assets/'+name+'.jpg';$('#plan-image').alt=floors[name].caption;$('#plan-features').replaceChildren(...floors[name].items.map(x=>{const li=document.createElement('li');li.textContent=x;return li}));$$('[data-floor]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.floor===name)));$('#plan-panel').setAttribute('aria-labelledby',name+'-tab')}
+floor('ground');$('.plans-trigger').addEventListener('click',()=>show($('#plans-dialog')));$$('[data-floor]').forEach(b=>{b.addEventListener('click',()=>floor(b.dataset.floor));b.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){const other=b.dataset.floor==='ground'?'upper':'ground';floor(other);$('#'+other+'-tab').focus()}})});$('#plan-cta').addEventListener('click',()=>$('#plans-dialog').close());
+$$('.privacy-trigger').forEach(b=>b.addEventListener('click',()=>show($('#privacy-dialog'))));
+const wa=$('.whatsapp'),panel=$('#whatsapp-panel');function toggleWa(open){panel.hidden=!open;wa.setAttribute('aria-expanded',String(open))}wa.addEventListener('click',()=>toggleWa(panel.hidden));$('.wa-close').addEventListener('click',()=>toggleWa(false));$('#whatsapp-panel .text-link').addEventListener('click',()=>toggleWa(false));
+const number=String(config.whatsappNumber||'').replace(/\D/g,'');
+if(number){$('#wa-description').textContent='Consulta disponibilidad y coordina una visita con el equipo comercial.';$('#wa-link').href='https://wa.me/'+number+'?text='+encodeURIComponent(config.whatsappMessage||'Hola, me interesa Lago Sur.')}else{$('#wa-description').textContent='El canal de WhatsApp se activará al confirmar el número comercial. Mientras tanto, puedes dejarnos tus datos.';$('#wa-link').textContent='Solicitar información ↗';$('#wa-link').href='#contacto';$('#wa-link').removeAttribute('target');$('#wa-link').addEventListener('click',()=>toggleWa(false))}
+const form=$('#lead-form');form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;const btn=form.querySelector('[type=submit]'),status=form.querySelector('.form-status');const data=Object.fromEntries(new FormData(form));if(data.phone.replace(/\D/g,'').length<10){status.textContent='Escribe un teléfono de al menos 10 dígitos.';status.className='form-status error';return}btn.disabled=true;btn.textContent='Guardando tu solicitud…';status.textContent='';try{if(location.protocol==='file:')throw new Error('Para guardar tu solicitud, abre el proyecto con npm start en http://localhost:3000.');const params=new URLSearchParams(location.search);const source=JSON.stringify({utm_source:params.get('utm_source')||'directo',utm_medium:params.get('utm_medium')||'',utm_campaign:params.get('utm_campaign')||'',referrer:document.referrer.slice(0,300)});const response=await fetch(config.formEndpoint||'/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,consent:form.elements.consent.checked,source})});const result=await response.json();if(!response.ok||result.ok!==true)throw new Error(result.error||'No pudimos registrar tu solicitud.');status.textContent='';status.className='form-status';form.reset();confirmLead(data.name);}catch(err){status.textContent=err.message||'No pudimos conectar. Inténtalo de nuevo.';status.className='form-status error'}finally{btn.disabled=false;btn.innerHTML='Solicitar información <span>↗</span>'}});
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}}),{threshold:0.08});$$('.section h2,.intro-grid,.stats,.model-grid,.gallery-strip,.amenity-grid,.location-grid').forEach(el=>{el.classList.add('reveal');obs.observe(el)});

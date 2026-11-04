@@ -1,0 +1,1 @@
+{"name":"lagosur-landing","version":"1.0.0","private":true,"description":"Propuesta premium para Lago Sur, con captación local de prospectos","type":"module","engines":{"node":">=22.13.0"},"scripts":{"start":"node server.mjs"}}

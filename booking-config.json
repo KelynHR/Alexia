@@ -1,0 +1,14 @@
+{
+  "timezone": "America/Mexico_City",
+  "demo": true,
+  "maxDaysAhead": 60,
+  "minimumNoticeMinutes": 120,
+  "durationMinutes": 60,
+  "openWeekdays": [1, 2, 3, 4, 5, 6],
+  "times": ["10:00", "11:30", "13:00", "16:00", "17:30"],
+  "closedDates": [],
+  "advisors": [
+    {"id": "asesor-01", "name": "Ana Ramirez", "active": true},
+    {"id": "asesor-02", "name": "Franco Jimenez", "active": true}
+  ]
+}
