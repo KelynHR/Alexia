@@ -5,7 +5,9 @@ import {fileURLToPath} from 'node:url';
 import {randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
 import {openDatabase} from './database.mjs';
 import {createBookingService} from './booking.mjs';
-const root=dirname(fileURLToPath(import.meta.url));
+const root = process.env.VERCEL
+  ? process.cwd()
+  : dirname(fileURLToPath(import.meta.url));
 const port=Number(process.env.PORT||3000),host='127.0.0.1';
 const password=process.env.ADMIN_PASSWORD||randomBytes(12).toString('base64url');
 if(process.env.VERCEL&&!process.env.ADMIN_PASSWORD)throw new Error('Configura ADMIN_PASSWORD en Vercel.');
