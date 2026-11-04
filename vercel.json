@@ -1,13 +1,7 @@
 {
   "functions": {
-    "api/index.mjs": {
+    "server.mjs": {
       "includeFiles": "{*.html,*.css,*.js,booking-config.json,assets/**}"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index"
-    }
-  ]
+  }
 }
