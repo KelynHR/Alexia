@@ -32,3 +32,28 @@ const number=String(config.whatsappNumber||'').replace(/\D/g,'');
 if(number){$('#wa-description').textContent='Consulta disponibilidad y coordina una visita con el equipo comercial.';$('#wa-link').href='https://wa.me/'+number+'?text='+encodeURIComponent(config.whatsappMessage||'Hola, me interesa Lago Sur.')}else{$('#wa-description').textContent='El canal de WhatsApp se activará al confirmar el número comercial. Mientras tanto, puedes dejarnos tus datos.';$('#wa-link').textContent='Solicitar información ↗';$('#wa-link').href='#contacto';$('#wa-link').removeAttribute('target');$('#wa-link').addEventListener('click',()=>toggleWa(false))}
 const form=$('#lead-form');form.addEventListener('submit',async e=>{e.preventDefault();if(!form.reportValidity())return;const btn=form.querySelector('[type=submit]'),status=form.querySelector('.form-status');const data=Object.fromEntries(new FormData(form));if(data.phone.replace(/\D/g,'').length<10){status.textContent='Escribe un teléfono de al menos 10 dígitos.';status.className='form-status error';return}btn.disabled=true;btn.textContent='Guardando tu solicitud…';status.textContent='';try{if(location.protocol==='file:')throw new Error('Para guardar tu solicitud, abre el proyecto con npm start en http://localhost:3000.');const params=new URLSearchParams(location.search);const source=JSON.stringify({utm_source:params.get('utm_source')||'directo',utm_medium:params.get('utm_medium')||'',utm_campaign:params.get('utm_campaign')||'',referrer:document.referrer.slice(0,300)});const response=await fetch(config.formEndpoint||'/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,consent:form.elements.consent.checked,source})});const result=await response.json();if(!response.ok||result.ok!==true)throw new Error(result.error||'No pudimos registrar tu solicitud.');status.textContent='';status.className='form-status';form.reset();confirmLead(data.name);}catch(err){status.textContent=err.message||'No pudimos conectar. Inténtalo de nuevo.';status.className='form-status error'}finally{btn.disabled=false;btn.innerHTML='Solicitar información <span>↗</span>'}});
 const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');obs.unobserve(e.target)}}),{threshold:0.08});$$('.section h2,.intro-grid,.stats,.model-grid,.gallery-strip,.amenity-grid,.location-grid').forEach(el=>{el.classList.add('reveal');obs.observe(el)});
+
+// Carrusel de Amenidades · Funciona también en alojamiento estático.
+(()=>{
+ const root=document.querySelector('.ls-amenity-carousel');if(!root||root.dataset.ready)return;root.dataset.ready='true';
+ const slides=[...root.querySelectorAll('.ls-amenity-slide')],controls=[...root.querySelectorAll('[data-ls-index]')],pause=root.querySelector('.ls-amenity-pause'),count=root.querySelector('.ls-current'),status=root.querySelector('.ls-amenity-status');
+ const reduce=window.matchMedia('(prefers-reduced-motion: reduce)');let current=0,timer=null,paused=reduce.matches,hovered=false,inView=false,touch=null;
+ const clear=()=>{if(timer){clearTimeout(timer);timer=null}};
+ function sync(){clear();if(paused||hovered||document.hidden||!inView||root.contains(document.activeElement))return;timer=setTimeout(()=>go(current+1,false),6500)}
+ function go(index,manual=true){
+  current=(index+slides.length)%slides.length;
+  slides.forEach((slide,i)=>{const active=i===current;slide.classList.toggle('is-active',active);slide.setAttribute('aria-hidden',String(!active))});
+  controls.forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.lsIndex)===current)));
+  count.textContent=String(current+1).padStart(2,'0');if(manual)status.textContent=slides[current].getAttribute('aria-label');sync();
+ }
+ function updatePause(){pause.setAttribute('aria-label',paused?'Reanudar carrusel':'Pausar carrusel');pause.setAttribute('aria-pressed',String(paused));pause.querySelector('path').setAttribute('d',paused?'m7 5 8 5-8 5Z':'M7 5v10M13 5v10');sync()}
+ root.querySelector('.ls-amenity-prev').addEventListener('click',()=>go(current-1));root.querySelector('.ls-amenity-next').addEventListener('click',()=>go(current+1));
+ controls.forEach(b=>b.addEventListener('click',()=>go(Number(b.dataset.lsIndex))));pause.addEventListener('click',()=>{paused=!paused;updatePause()});
+ root.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();go(current-1)}else if(e.key==='ArrowRight'){e.preventDefault();go(current+1)}else if(e.key==='Home'){e.preventDefault();go(0)}else if(e.key==='End'){e.preventDefault();go(slides.length-1)}});
+ root.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'){hovered=true;sync()}});root.addEventListener('pointerleave',()=>{hovered=false;sync()});root.addEventListener('focusin',clear);root.addEventListener('focusout',()=>setTimeout(sync,0));document.addEventListener('visibilitychange',sync);
+ const stage=root.querySelector('.ls-amenity-stage');stage.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!e.target.closest('button')){touch={x:e.clientX,y:e.clientY,id:e.pointerId};clear()}});
+ stage.addEventListener('pointerup',e=>{if(!touch||touch.id!==e.pointerId)return;const dx=e.clientX-touch.x,dy=e.clientY-touch.y;touch=null;if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.35)go(current+(dx<0?1:-1));else sync()});stage.addEventListener('pointercancel',()=>{touch=null;sync()});
+ reduce.addEventListener('change',e=>{if(e.matches){paused=true;updatePause()}});
+ if('IntersectionObserver' in window){new IntersectionObserver(entries=>{inView=entries[0].isIntersecting;sync()},{threshold:.2}).observe(root)}else{inView=true}
+ updatePause();go(0,false);
+})();
